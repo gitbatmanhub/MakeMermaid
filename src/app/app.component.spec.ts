@@ -14,16 +14,12 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have the 'makeMermaid' title`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('makeMermaid');
-  });
-
-  it('should render title', () => {
+  it('should render the Mermaid workspace', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, makeMermaid');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Código Mermaid');
+    expect(compiled.querySelector('.editor-host')).toBeTruthy();
+    expect(compiled.querySelector('.preview-canvas')).toBeTruthy();
   });
 });
