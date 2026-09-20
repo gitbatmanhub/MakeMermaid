@@ -7,12 +7,13 @@ const inputFile = path.resolve(args.input ?? 'public/code-map.json');
 const outFile = path.resolve(args.out ?? 'public/code-map.mmd');
 const mode = args.mode === 'all' ? 'all' : 'focus';
 const focus = args.focus ?? '';
-const maxNodes = Number.parseInt(args.maxNodes ?? '42', 10);
 const includeMigrations = args.includeMigrations === true
   || args.includeMigrations === 'true'
   || args['include-migrations'] === true
   || args['include-migrations'] === 'true';
 const graph = filterMigrations(JSON.parse(readFileSync(inputFile, 'utf8')), includeMigrations);
+const requestedMaxNodes = Number.parseInt(args.maxNodes ?? `${graph.nodes.length}`, 10);
+const maxNodes = Number.isFinite(requestedMaxNodes) ? Math.max(1, requestedMaxNodes) : graph.nodes.length;
 const mermaid = mode === 'all' ? createFullMermaid(graph, maxNodes) : createFocusMermaid(graph, focus, maxNodes);
 
 mkdirSync(path.dirname(outFile), { recursive: true });
@@ -64,6 +65,7 @@ function createFullMermaid(graph, limit) {
 
 function createMermaid(graph, nodeIds, edges) {
   const nodes = graph.nodes.filter((node) => nodeIds.has(node.id));
+  const renderedEdges = collapseEdges(edges);
   const mermaidIds = new Map(nodes.map((node, index) => [node.id, safeId(node.id, index)]));
   const lines = [
     'flowchart LR',
@@ -73,11 +75,41 @@ function createMermaid(graph, nodeIds, edges) {
   ];
 
   for (const node of nodes) lines.push(`    ${mermaidIds.get(node.id)}${shapeForNode(node)}`);
-  if (edges.length) lines.push('');
-  for (const edge of edges) lines.push(`    ${mermaidIds.get(edge.from)} -->|"${escapeLabel(edge.label || edge.kind)}"| ${mermaidIds.get(edge.to)}`);
+  if (renderedEdges.length) lines.push('');
+  for (const edge of renderedEdges) lines.push(`    ${mermaidIds.get(edge.from)} -->|"${escapeLabel(edge.label || edge.kind)}"| ${mermaidIds.get(edge.to)}`);
 
   lines.push('', ...createClassStyles(nodes, mermaidIds));
   return lines.join('\n');
+}
+
+function collapseEdges(edges) {
+  const groups = new Map();
+
+  for (const edge of edges) {
+    const key = `${edge.from}\u0000${edge.to}`;
+    groups.set(key, [...(groups.get(key) ?? []), edge]);
+  }
+
+  return [...groups.values()].map((group) => ({
+    from: group[0].from,
+    to: group[0].to,
+    label: formatEdgeDetails(group)
+  }));
+}
+
+function formatEdgeDetails(edges) {
+  const priorities = {
+    imports: 0,
+    injects: 1,
+    calls: 2,
+    'receives-dto': 3
+  };
+  const orderedLabels = edges
+    .slice()
+    .sort((a, b) => (priorities[a.kind] ?? 4) - (priorities[b.kind] ?? 4) || a.label.localeCompare(b.label))
+    .map((edge) => edge.label || edge.kind);
+
+  return [...new Set(orderedLabels)].join('<br/>');
 }
 
 function shapeForNode(node) {

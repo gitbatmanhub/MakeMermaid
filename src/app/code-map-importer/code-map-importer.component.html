@@ -37,7 +37,7 @@
     <div class="import-controls">
       <label>
         <span>Vista</span>
-        <select [ngModel]="mode()" (ngModelChange)="mode.set($event)">
+        <select [ngModel]="mode()" (ngModelChange)="setMode($event)">
           <option value="focus">Foco</option>
           <option value="all">Todos</option>
         </select>
@@ -55,8 +55,14 @@
       }
 
       <label>
-        <span>Máx. nodos</span>
-        <input type="number" min="8" max="240" [ngModel]="maxNodes()" (ngModelChange)="setMaxNodes(+$event)" />
+        <span>Nodos a mostrar</span>
+        <input
+          type="number"
+          min="1"
+          [attr.max]="nodeOptions().length"
+          [ngModel]="maxNodes()"
+          (ngModelChange)="setMaxNodes(+$event)"
+        />
       </label>
 
       <label class="check-control">
@@ -71,7 +77,16 @@
       <button type="button" class="button primary" (click)="generateMermaid()">Enviar al editor</button>
     </div>
 
-    @if (selectedNode(); as node) {
+    @if (mode() === 'all') {
+      <p class="selected-node">
+        <strong>Se generarán {{ renderNodeCount() }} de {{ nodeOptions().length }} nodos disponibles</strong>
+        @if (renderNodeCount() > 500) {
+          <span>Este diagrama es grande y Mermaid puede tardar en calcular su distribución.</span>
+        }
+      </p>
+    }
+
+    @if (mode() === 'focus' && selectedNode(); as node) {
       <p class="selected-node">
         <strong>{{ node.label }}</strong>
         <span>{{ node.kind }} · {{ node.file }}</span>

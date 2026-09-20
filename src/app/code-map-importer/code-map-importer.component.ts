@@ -63,8 +63,8 @@ export class CodeMapImporterComponent {
   readonly graph = signal<CodeMap | null>(null);
   readonly fileName = signal('');
   readonly selectedNodeId = signal('');
-  readonly mode = signal<'focus' | 'all'>('focus');
-  readonly maxNodes = signal(42);
+  readonly mode = signal<'focus' | 'all'>('all');
+  readonly maxNodes = signal(1);
   readonly includeMigrations = signal(false);
   readonly errorMessage = signal('');
 
@@ -74,6 +74,7 @@ export class CodeMapImporterComponent {
     .slice()
     .sort((a, b) => a.label.localeCompare(b.label)) ?? []);
   readonly selectedNode = computed(() => this.nodeOptions().find((node) => node.id === this.selectedNodeId()) ?? null);
+  readonly renderNodeCount = computed(() => Math.min(this.maxNodes(), this.nodeOptions().length));
   readonly summaryItems = computed(() => {
     const graph = this.graph();
     if (!graph) return [];
@@ -93,7 +94,9 @@ export class CodeMapImporterComponent {
       const graph = this.parseGraph(JSON.parse(await file.text()));
       this.graph.set(graph);
       this.fileName.set(file.name);
+      this.mode.set('all');
       this.selectedNodeId.set(graph.nodes.find((node) => !this.isMigration(node))?.id ?? graph.nodes[0]?.id ?? '');
+      this.maxNodes.set(Math.max(1, graph.nodes.filter((node) => !this.isMigration(node)).length));
       this.errorMessage.set('');
     } catch (error) {
       this.graph.set(null);
@@ -120,8 +123,14 @@ export class CodeMapImporterComponent {
     this.maxNodes.set(this.clampMaxNodes(value));
   }
 
+  setMode(value: 'focus' | 'all'): void {
+    this.mode.set(value);
+    if (value === 'all') this.maxNodes.set(Math.max(1, this.nodeOptions().length));
+  }
+
   setIncludeMigrations(value: boolean): void {
     this.includeMigrations.set(value);
+    this.maxNodes.set(Math.max(1, this.nodeOptions().length));
     if (!this.nodeOptions().some((node) => node.id === this.selectedNodeId())) {
       this.selectedNodeId.set(this.nodeOptions()[0]?.id ?? '');
     }
@@ -154,6 +163,7 @@ export class CodeMapImporterComponent {
 
   private createMermaid(graph: CodeMap, nodeIds: Set<string>, edges: CodeMapEdge[]): string {
     const nodes = graph.nodes.filter((node) => nodeIds.has(node.id));
+    const renderedEdges = this.collapseEdges(edges);
     const mermaidIds = new Map(nodes.map((node, index) => [node.id, this.safeId(node.id, index)]));
     const lines = [
       'flowchart LR',
@@ -166,14 +176,46 @@ export class CodeMapImporterComponent {
       lines.push(`    ${mermaidIds.get(node.id)}${this.shapeForNode(node)}`);
     }
 
-    if (edges.length) lines.push('');
+    if (renderedEdges.length) lines.push('');
 
-    for (const edge of edges) {
+    for (const edge of renderedEdges) {
       lines.push(`    ${mermaidIds.get(edge.from)} -->|"${this.escapeLabel(edge.label || edge.kind)}"| ${mermaidIds.get(edge.to)}`);
     }
 
     lines.push('', ...this.createClassStyles(nodes, mermaidIds));
     return lines.join('\n');
+  }
+
+  private collapseEdges(edges: CodeMapEdge[]): CodeMapEdge[] {
+    const groups = new Map<string, CodeMapEdge[]>();
+
+    for (const edge of edges) {
+      const key = `${edge.from}\u0000${edge.to}`;
+      groups.set(key, [...(groups.get(key) ?? []), edge]);
+    }
+
+    return [...groups.values()].map((group) => ({
+      id: `group:${group[0].from}->${group[0].to}`,
+      from: group[0].from,
+      to: group[0].to,
+      kind: 'grouped',
+      label: this.formatEdgeDetails(group)
+    }));
+  }
+
+  private formatEdgeDetails(edges: CodeMapEdge[]): string {
+    const priorities: Record<string, number> = {
+      imports: 0,
+      injects: 1,
+      calls: 2,
+      'receives-dto': 3
+    };
+    const orderedLabels = edges
+      .slice()
+      .sort((a, b) => (priorities[a.kind] ?? 4) - (priorities[b.kind] ?? 4) || a.label.localeCompare(b.label))
+      .map((edge) => edge.label || edge.kind);
+
+    return [...new Set(orderedLabels)].join('<br/>');
   }
 
   private shapeForNode(node: CodeMapNode): string {
@@ -266,7 +308,8 @@ export class CodeMapImporterComponent {
   }
 
   private clampMaxNodes(value: number): number {
-    return Math.min(240, Math.max(8, Number.isFinite(value) ? Math.round(value) : 42));
+    const availableNodes = Math.max(1, this.nodeOptions().length);
+    return Math.min(availableNodes, Math.max(1, Number.isFinite(value) ? Math.round(value) : availableNodes));
   }
 
   private filterMigrations(graph: CodeMap): CodeMap {

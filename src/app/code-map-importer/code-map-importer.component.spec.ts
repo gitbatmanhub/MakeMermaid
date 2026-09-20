@@ -11,7 +11,10 @@ const VALID_GRAPH = {
     { id: 'class:CreateUsers', label: 'CreateUsers', kind: 'class', file: 'database/migrations/1700-create-users.ts' }
   ],
   edges: [
-    { id: 'users', from: 'class:UsersController', to: 'class:UsersService', kind: 'calls', label: 'UsersService.findAll()' },
+    { id: 'users-import', from: 'class:UsersController', to: 'class:UsersService', kind: 'imports', label: 'importa' },
+    { id: 'users-inject', from: 'class:UsersController', to: 'class:UsersService', kind: 'injects', label: 'inyecta usersService' },
+    { id: 'users-find-all', from: 'class:UsersController', to: 'class:UsersService', kind: 'calls', label: 'findAll llama usersService.findAll()' },
+    { id: 'users-find-one', from: 'class:UsersController', to: 'class:UsersService', kind: 'calls', label: 'findOne llama usersService.findOne()' },
     { id: 'migration', from: 'class:CreateUsers', to: 'class:UsersService', kind: 'imports', label: 'importa' }
   ]
 };
@@ -34,7 +37,9 @@ describe('CodeMapImporterComponent', () => {
     expect(generated?.fileName).toBe('backend-code-map.mmd');
     expect(generated?.source).toContain('flowchart LR');
     expect(generated?.source).toContain('UsersController<br/>controller<br/>users.controller.ts');
-    expect(generated?.source).toContain('-->|"UsersService.findAll()"|');
+    expect(generated?.source).toContain('-->|"importa<br/>inyecta usersService<br/>findAll llama usersService.findAll()<br/>findOne llama usersService.findOne()"|');
+    expect(generated?.source).not.toContain('2 llamadas');
+    expect(generated?.source?.match(/-->/g)?.length).toBe(1);
     expect(generated?.source).toContain('classDef controller');
     expect(generated?.source).toContain('classDef codeClass');
     expect(generated?.source).not.toContain('classDef class');
@@ -70,6 +75,27 @@ describe('CodeMapImporterComponent', () => {
 
     expect(component.graph()).toBeNull();
     expect(component.errorMessage()).toContain('nodo inexistente');
+  });
+
+  it('uses every available node instead of silently capping large maps', async () => {
+    const fixture = TestBed.createComponent(CodeMapImporterComponent);
+    const component = fixture.componentInstance;
+    let generated: { source: string; fileName: string } | undefined;
+    component.mermaidGenerated.subscribe((value) => generated = value);
+    const nodes = Array.from({ length: 300 }, (_, index) => ({
+      id: `class:Node${index}`,
+      label: `Node${index}`,
+      kind: 'class',
+      file: `node-${index}.ts`
+    }));
+
+    await component.handleJsonSelection(fileEvent({ ...VALID_GRAPH, nodes, edges: [] }));
+    component.generateMermaid();
+
+    expect(component.mode()).toBe('all');
+    expect(component.maxNodes()).toBe(300);
+    expect(component.renderNodeCount()).toBe(300);
+    expect(generated?.source.match(/\["Node\d+<br\/>/g)?.length).toBe(300);
   });
 });
 
