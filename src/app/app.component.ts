@@ -20,6 +20,9 @@ const STARTER_DIAGRAM = `flowchart LR
     Revisar -->|Sí| Guardar["Guardar archivo .mmd"]
     Revisar -->|No| Editar`;
 
+const MERMAID_MAX_TEXT_SIZE = 5_000_000;
+const MERMAID_MAX_EDGES = 10_000;
+
 const mermaidLanguage = StreamLanguage.define({
   token(stream: StringStream): string | null {
     if (stream.match(/%%.*/)) return 'comment';
@@ -409,6 +412,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
+      maxTextSize: MERMAID_MAX_TEXT_SIZE,
+      maxEdges: MERMAID_MAX_EDGES,
       theme: this.darkMode() ? 'dark' : 'default',
       fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif'
     });
