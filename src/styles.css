@@ -66,7 +66,7 @@ button {
 
 .app-header {
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) minmax(180px, 360px) minmax(360px, 1fr);
+  grid-template-columns: minmax(170px, 0.9fr) minmax(170px, 320px) auto minmax(330px, 1fr);
   align-items: center;
   gap: 18px;
   padding: 0 14px;
@@ -148,10 +148,37 @@ button {
 }
 
 .file-actions,
+.workspace-switch,
 .preview-tools,
 .zoom-control {
   display: flex;
   align-items: center;
+}
+
+.workspace-switch {
+  justify-content: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.workspace-switch button {
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.workspace-switch button.active {
+  color: #ffffff;
+  background: var(--accent);
 }
 
 .file-actions {
@@ -213,6 +240,19 @@ button {
   display: grid;
   grid-template-columns: minmax(280px, var(--editor-width)) 7px minmax(360px, 1fr);
   min-height: 0;
+}
+
+.workspace.is-hidden {
+  position: absolute;
+  inset: 58px 0 30px;
+  z-index: -1;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tool-workspace {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .editor-panel,
@@ -599,13 +639,36 @@ button {
     padding: 10px 12px;
   }
 
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .file-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .document-name {
     grid-column: 1 / -1;
     grid-row: 2;
   }
 
+  .workspace-switch {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: stretch;
+  }
+
+  .workspace-switch button {
+    flex: 1;
+  }
+
   .file-actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .workspace {

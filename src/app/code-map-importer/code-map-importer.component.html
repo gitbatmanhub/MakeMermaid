@@ -1,0 +1,77 @@
+<section class="code-map-importer">
+  <div class="importer-header">
+    <div>
+      <span class="section-kicker">Code map</span>
+      <h2>Convertir JSON de código a Mermaid</h2>
+      <p>Importa un <code>code-map.json</code>, elige una vista legible y envíala al editor Mermaid.</p>
+    </div>
+
+    <label class="button primary">
+      Abrir JSON
+      <input type="file" accept=".json,application/json" (change)="handleJsonSelection($event)" />
+    </label>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="import-error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (graph(); as graph) {
+    <div class="map-summary" aria-label="Resumen del mapa">
+      <article>
+        <strong>{{ graph.summary.totalNodes }}</strong>
+        <span>Nodos</span>
+      </article>
+      <article>
+        <strong>{{ graph.summary.totalEdges }}</strong>
+        <span>Relaciones</span>
+      </article>
+      @for (item of summaryItems(); track item.kind) {
+        <article>
+          <strong>{{ item.total }}</strong>
+          <span>{{ item.label }}</span>
+        </article>
+      }
+    </div>
+
+    <div class="import-controls">
+      <label>
+        <span>Vista</span>
+        <select [ngModel]="mode()" (ngModelChange)="mode.set($event)">
+          <option value="focus">Foco</option>
+          <option value="all">Todos</option>
+        </select>
+      </label>
+
+      @if (mode() === 'focus') {
+        <label>
+          <span>Nodo central</span>
+          <select [ngModel]="selectedNodeId()" (ngModelChange)="selectedNodeId.set($event)">
+            @for (node of nodeOptions(); track node.id) {
+              <option [value]="node.id">{{ node.label }} · {{ node.kind }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <label>
+        <span>Máx. nodos</span>
+        <input type="number" min="8" max="240" [ngModel]="maxNodes()" (ngModelChange)="setMaxNodes(+$event)" />
+      </label>
+
+      <button type="button" class="button primary" (click)="generateMermaid()">Enviar al editor</button>
+    </div>
+
+    @if (selectedNode(); as node) {
+      <p class="selected-node">
+        <strong>{{ node.label }}</strong>
+        <span>{{ node.kind }} · {{ node.file }}</span>
+      </p>
+    }
+  } @else {
+    <div class="empty-importer">
+      <strong>Primero genera o abre un code-map.json</strong>
+      <p>Luego podrás convertirlo a un diagrama Mermaid portable.</p>
+    </div>
+  }
+</section>

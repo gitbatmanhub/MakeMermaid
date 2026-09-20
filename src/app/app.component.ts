@@ -6,10 +6,12 @@ import { Compartment, EditorState, Extension } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import mermaid from 'mermaid';
+import { CodeMapImporterComponent } from './code-map-importer/code-map-importer.component';
 
 type RenderStatus = 'rendering' | 'ready' | 'error';
 type ErConnectorStyle = 'gentle' | 'curved' | 'straight' | 'orthogonal';
 type ErRelationship = { source: string; target: string };
+type WorkspaceMode = 'editor' | 'code-map';
 
 const STARTER_DIAGRAM = `flowchart LR
     Idea["Idea"] --> Editar["Editar en Angular"]
@@ -36,6 +38,7 @@ const mermaidLanguage = StreamLanguage.define({
 @Component({
   selector: 'app-root',
   standalone: true,
+  imports: [CodeMapImporterComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -55,6 +58,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly panY = signal(0);
   readonly darkMode = signal(this.readInitialTheme());
   readonly isDirty = signal(false);
+  readonly workspaceMode = signal<WorkspaceMode>('editor');
   readonly editorWidth = signal(this.readStoredNumber('make-mermaid.editor-width', 44));
   readonly diagramWidth = signal(1);
   readonly diagramHeight = signal(1);
@@ -129,6 +133,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     const baseName = this.fileName().replace(/\.[^.]+$/, '') || 'diagrama';
     this.download(new Blob([this.renderedSvg], { type: 'image/svg+xml;charset=utf-8' }), `${baseName}.svg`);
+  }
+
+  loadGeneratedMermaid(event: { source: string; fileName: string }): void {
+    if (this.isDirty() && !window.confirm('Hay cambios sin guardar. ¿Reemplazar el diagrama actual?')) return;
+
+    this.setDocument(event.source, event.fileName);
+    this.workspaceMode.set('editor');
   }
 
   toggleTheme(): void {

@@ -19,6 +19,15 @@
       />
     </div>
 
+    <nav class="workspace-switch" role="tablist" aria-label="Funcionalidades">
+      <button type="button" role="tab" [attr.aria-selected]="workspaceMode() === 'editor'" [class.active]="workspaceMode() === 'editor'" (click)="workspaceMode.set('editor')">
+        Editor
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="workspaceMode() === 'code-map'" [class.active]="workspaceMode() === 'code-map'" (click)="workspaceMode.set('code-map')">
+        Code map
+      </button>
+    </nav>
+
     <nav class="file-actions" aria-label="Acciones del documento">
       <button type="button" class="button secondary" (click)="newDocument()" title="Nuevo documento (⌘N)">Nuevo</button>
       <button type="button" class="button secondary" (click)="openDocument()" title="Abrir archivo (⌘O)">Abrir</button>
@@ -44,145 +53,160 @@
   <main
     #workspace
     class="workspace"
+    [class.is-hidden]="workspaceMode() !== 'editor'"
     [style.--editor-width]="editorWidth() + '%'"
   >
-    <section class="editor-panel" aria-labelledby="editor-title">
-      <div class="panel-header">
-        <div>
-          <span class="section-kicker">Documento</span>
-          <h1 id="editor-title">Código Mermaid</h1>
-        </div>
-        <span class="line-count">{{ lineCount() }} líneas</span>
-      </div>
-
-      <div #editorHost class="editor-host" aria-label="Código Mermaid"></div>
-    </section>
-
-    <div
-      class="panel-resizer"
-      role="separator"
-      tabindex="0"
-      aria-label="Cambiar tamaño de los paneles"
-      aria-orientation="vertical"
-      [attr.aria-valuenow]="editorWidth()"
-      aria-valuemin="28"
-      aria-valuemax="72"
-      (pointerdown)="startResize($event)"
-      (keydown)="resizeWithKeyboard($event)"
-    ><span aria-hidden="true"></span></div>
-
-    <section class="preview-panel" aria-labelledby="preview-title">
-      <div class="panel-header preview-header">
-        <div>
-          <span class="section-kicker">Resultado</span>
-          <h2 id="preview-title">Vista previa</h2>
-        </div>
-
-        <div class="preview-tools">
-          <div class="zoom-control" aria-label="Control de zoom">
-            <button type="button" (click)="zoomOut()" title="Alejar" aria-label="Alejar">−</button>
-            <button type="button" class="zoom-value" (click)="resetZoom()" title="Centrar y restablecer zoom">{{ zoomLabel() }}</button>
-            <button type="button" (click)="zoomIn()" title="Acercar" aria-label="Acercar">+</button>
+      <section class="editor-panel" aria-labelledby="editor-title">
+        <div class="panel-header">
+          <div>
+            <span class="section-kicker">Documento</span>
+            <h1 id="editor-title">Código Mermaid</h1>
           </div>
-          <button type="button" class="button secondary" (click)="fitDiagram()">Ajustar</button>
-          <button
-            type="button"
-            class="button secondary"
-            (click)="exportSvg()"
-            [disabled]="status() !== 'ready'"
-          >Exportar SVG</button>
+          <span class="line-count">{{ lineCount() }} líneas</span>
         </div>
-      </div>
+
+        <div #editorHost class="editor-host" aria-label="Código Mermaid"></div>
+      </section>
 
       <div
-        #previewCanvas
-        class="preview-canvas"
-        (wheel)="handleCanvasWheel($event)"
-        (pointerdown)="startCanvasPan($event)"
-        (pointermove)="moveCanvasPan($event)"
-        (pointerup)="stopCanvasPan($event)"
-        (pointercancel)="stopCanvasPan($event)"
-      >
-        @if (isErDiagram()) {
-          <div class="er-style-tools" (pointerdown)="$event.stopPropagation()">
-            <label>
-              <span>Ruta</span>
-              <select [value]="erConnectorStyle()" (change)="setErConnectorStyle($event)">
-                <option value="gentle">Sutil</option>
-                <option value="straight">Recta</option>
-                <option value="orthogonal">Ortogonal</option>
-                <option value="curved">Curva Mermaid</option>
-              </select>
-            </label>
+        class="panel-resizer"
+        role="separator"
+        tabindex="0"
+        aria-label="Cambiar tamaño de los paneles"
+        aria-orientation="vertical"
+        [attr.aria-valuenow]="editorWidth()"
+        aria-valuemin="28"
+        aria-valuemax="72"
+        (pointerdown)="startResize($event)"
+        (keydown)="resizeWithKeyboard($event)"
+      ><span aria-hidden="true"></span></div>
 
-            @if (erEntities().length) {
-              <label>
-                <span>Tabla</span>
-                <select [value]="activeErEntity()" (change)="selectErEntity($event)">
-                  @for (entity of erEntities(); track entity) {
-                    <option [value]="entity">{{ entity }}</option>
-                  }
-                </select>
-              </label>
-              <label class="color-control" title="Color de la tabla seleccionada">
-                <span>Color</span>
-                <input type="color" [value]="selectedErColor()" (input)="setErEntityColor($event)" />
-              </label>
-              @if (selectedErEntity()) {
-                <button
-                  type="button"
-                  class="delete-entity-button"
-                  (click)="deleteSelectedErEntity()"
-                  title="Eliminar la tabla seleccionada"
-                >Eliminar</button>
-              }
-            }
-
-            <label class="color-control" title="Color de los conectores">
-              <span>Líneas</span>
-              <input type="color" [value]="erConnectorColor()" (input)="setErConnectorColor($event)" />
-            </label>
+      <section class="preview-panel" aria-labelledby="preview-title">
+        <div class="panel-header preview-header">
+          <div>
+            <span class="section-kicker">Resultado</span>
+            <h2 id="preview-title">Vista previa</h2>
           </div>
-        }
 
-        @if (status() === 'rendering') {
-          <div class="rendering-state" role="status">
-            <span class="spinner" aria-hidden="true"></span>
-            Renderizando
+          <div class="preview-tools">
+            <div class="zoom-control" aria-label="Control de zoom">
+              <button type="button" (click)="zoomOut()" title="Alejar" aria-label="Alejar">−</button>
+              <button type="button" class="zoom-value" (click)="resetZoom()" title="Centrar y restablecer zoom">{{ zoomLabel() }}</button>
+              <button type="button" (click)="zoomIn()" title="Acercar" aria-label="Acercar">+</button>
+            </div>
+            <button type="button" class="button secondary" (click)="fitDiagram()">Ajustar</button>
+            <button
+              type="button"
+              class="button secondary"
+              (click)="exportSvg()"
+              [disabled]="status() !== 'ready'"
+            >Exportar SVG</button>
           </div>
-        }
-
-        @if (status() === 'error') {
-          <div class="error-state" role="alert">
-            <strong>No se pudo renderizar el diagrama</strong>
-            <pre>{{ errorMessage() }}</pre>
-          </div>
-        }
+        </div>
 
         <div
-          class="canvas-origin"
-          [style.transform]="'translate(' + panX() + 'px, ' + panY() + 'px)'"
+          #previewCanvas
+          class="preview-canvas"
+          (wheel)="handleCanvasWheel($event)"
+          (pointerdown)="startCanvasPan($event)"
+          (pointermove)="moveCanvasPan($event)"
+          (pointerup)="stopCanvasPan($event)"
+          (pointercancel)="stopCanvasPan($event)"
         >
+          @if (isErDiagram()) {
+            <div class="er-style-tools" (pointerdown)="$event.stopPropagation()">
+              <label>
+                <span>Ruta</span>
+                <select [value]="erConnectorStyle()" (change)="setErConnectorStyle($event)">
+                  <option value="gentle">Sutil</option>
+                  <option value="straight">Recta</option>
+                  <option value="orthogonal">Ortogonal</option>
+                  <option value="curved">Curva Mermaid</option>
+                </select>
+              </label>
+
+              @if (erEntities().length) {
+                <label>
+                  <span>Tabla</span>
+                  <select [value]="activeErEntity()" (change)="selectErEntity($event)">
+                    @for (entity of erEntities(); track entity) {
+                      <option [value]="entity">{{ entity }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="color-control" title="Color de la tabla seleccionada">
+                  <span>Color</span>
+                  <input type="color" [value]="selectedErColor()" (input)="setErEntityColor($event)" />
+                </label>
+                @if (selectedErEntity()) {
+                  <button
+                    type="button"
+                    class="delete-entity-button"
+                    (click)="deleteSelectedErEntity()"
+                    title="Eliminar la tabla seleccionada"
+                  >Eliminar</button>
+                }
+              }
+
+              <label class="color-control" title="Color de los conectores">
+                <span>Líneas</span>
+                <input type="color" [value]="erConnectorColor()" (input)="setErConnectorColor($event)" />
+              </label>
+            </div>
+          }
+
+          @if (status() === 'rendering') {
+            <div class="rendering-state" role="status">
+              <span class="spinner" aria-hidden="true"></span>
+              Renderizando
+            </div>
+          }
+
+          @if (status() === 'error') {
+            <div class="error-state" role="alert">
+              <strong>No se pudo renderizar el diagrama</strong>
+              <pre>{{ errorMessage() }}</pre>
+            </div>
+          }
+
           <div
-            #diagram
-            class="diagram-output"
-            [class.hidden]="status() !== 'ready'"
-            [style.transform]="'translate(-50%, -50%) scale(' + zoom() + ')'"
-          ></div>
+            class="canvas-origin"
+            [style.transform]="'translate(' + panX() + 'px, ' + panY() + 'px)'"
+          >
+            <div
+              #diagram
+              class="diagram-output"
+              [class.hidden]="status() !== 'ready'"
+              [style.transform]="'translate(-50%, -50%) scale(' + zoom() + ')'"
+            ></div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
   </main>
 
+  @if (workspaceMode() === 'code-map') {
+    <main class="tool-workspace">
+      <app-code-map-importer (mermaidGenerated)="loadGeneratedMermaid($event)"></app-code-map-importer>
+    </main>
+  }
+
   <footer class="status-bar">
-    <span class="render-status" [attr.data-status]="status()">
-      <span class="status-dot" aria-hidden="true"></span>
-      @switch (status()) {
-        @case ('ready') { Diagrama listo }
-        @case ('rendering') { Actualizando vista previa }
-        @case ('error') { Revisa la sintaxis }
-      }
-    </span>
-    <span>Los archivos permanecen en tu navegador</span>
+    @if (workspaceMode() === 'editor') {
+      <span class="render-status" [attr.data-status]="status()">
+        <span class="status-dot" aria-hidden="true"></span>
+        @switch (status()) {
+          @case ('ready') { Diagrama listo }
+          @case ('rendering') { Actualizando vista previa }
+          @case ('error') { Revisa la sintaxis }
+        }
+      </span>
+      <span>Los archivos permanecen en tu navegador</span>
+    } @else {
+      <span class="render-status" data-status="ready">
+        <span class="status-dot" aria-hidden="true"></span>
+        Importador de proyectos listo
+      </span>
+      <span>El JSON se procesa localmente</span>
+    }
   </footer>
 </div>

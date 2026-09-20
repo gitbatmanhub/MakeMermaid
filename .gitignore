@@ -37,6 +37,10 @@ yarn-error.log
 testem.log
 /typings
 
+# Generated code-map artifacts
+/public/code-map.json
+/public/code-map.mmd
+
 # System files
 .DS_Store
 Thumbs.db

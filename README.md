@@ -1,27 +1,79 @@
-# MakeMermaid
+# Make Mermaid
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.19.
+Editor local Angular para crear, abrir, previsualizar y exportar diagramas Mermaid.
 
-## Development server
+También incluye una funcionalidad independiente para convertir mapas de código TypeScript/NestJS en diagramas Mermaid.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Desarrollo
 
-## Code scaffolding
+```bash
+npm install
+npm start
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Abre la URL que muestre Angular, normalmente:
 
-## Build
+```txt
+http://localhost:4201/
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Editor Mermaid
 
-## Running unit tests
+La pestaña **Editor** mantiene el flujo original:
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+- Editar código Mermaid.
+- Previsualizar con pan/zoom.
+- Guardar `.mmd`.
+- Exportar SVG.
+- Ajustar apariencia de diagramas ER.
 
-## Running end-to-end tests
+## Code Map
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+La pestaña **Code map** permite cargar un `code-map.json` y convertirlo en Mermaid sin salir de la app.
 
-## Further help
+Flujo recomendado:
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```txt
+Backend NestJS
+      ↓
+npm run map
+      ↓
+public/code-map.json
+      ↓
+Pestaña Code map
+      ↓
+Enviar al editor Mermaid
+```
+
+Para generar el JSON desde un backend:
+
+```bash
+npm run map -- --source /ruta/al/proyecto/src --out public/code-map.json
+```
+
+Para generar un `.mmd` directamente por CLI:
+
+```bash
+npm run map:mermaid -- --input public/code-map.json --out public/code-map.mmd --mode focus --focus UsersService --maxNodes 42
+```
+
+También puedes usar una vista más amplia:
+
+```bash
+npm run map:mermaid -- --input public/code-map.json --out public/code-map.mmd --mode all --maxNodes 120
+```
+
+## Qué Detecta
+
+- Controllers, services, DTOs, modules, entities y clases TypeScript.
+- Imports entre clases.
+- Inyección por constructor.
+- DTOs recibidos por controllers.
+- Llamadas tipo `this.servicio.metodo()`.
+- Rutas HTTP básicas de NestJS.
+
+## Nota Sobre Proyectos Grandes
+
+Para proyectos con cientos de nodos, usa **focus** por defecto. Un Mermaid con todo el grafo puede volverse tan ilegible como cualquier otro diagrama masivo.
+
+La estrategia recomendada es generar mapas pequeños por servicio, controller o módulo central.
