@@ -352,12 +352,81 @@ button {
   touch-action: none;
   user-select: none;
   background-color: var(--surface-subtle);
-  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
 }
 
 .preview-canvas.is-panning {
   cursor: grabbing;
+}
+
+.er-style-tools {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgb(20 35 38 / 8%);
+  cursor: default;
+  user-select: auto;
+}
+
+.er-style-tools label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.er-style-tools select {
+  width: 112px;
+  height: 28px;
+  padding: 0 24px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  background: var(--surface-subtle);
+  font-size: 11px;
+}
+
+.er-style-tools label:nth-child(2) select {
+  width: 136px;
+}
+
+.er-style-tools .color-control {
+  justify-items: center;
+}
+
+.er-style-tools input[type='color'] {
+  width: 32px;
+  height: 28px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-subtle);
+  cursor: pointer;
+}
+
+.er-style-tools .delete-entity-button {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--error) 45%, var(--border));
+  border-radius: 5px;
+  color: var(--error);
+  background: var(--error-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.er-style-tools .delete-entity-button:hover {
+  border-color: var(--error);
 }
 
 .canvas-origin {
@@ -374,14 +443,9 @@ button {
   top: 50%;
   left: 50%;
   width: max-content;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 24px rgb(20 35 38 / 8%);
   transform-origin: center;
   transition: transform 80ms ease-out;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .diagram-output.hidden {
@@ -391,6 +455,40 @@ button {
 .diagram-output svg {
   display: block;
   max-width: none;
+}
+
+.diagram-output .relationshipLine {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diagram-output [data-er-entity] {
+  cursor: pointer;
+  filter: drop-shadow(0 3px 2px rgb(20 35 38 / 10%));
+  transition: filter 120ms ease-out;
+}
+
+.diagram-output [data-er-entity]:hover,
+.diagram-output [data-er-entity].is-selected {
+  filter: drop-shadow(0 5px 4px rgb(20 35 38 / 18%));
+}
+
+.diagram-output [data-er-entity] .name {
+  font-weight: 750;
+}
+
+.diagram-output [data-er-entity] .outer-path path,
+.diagram-output [data-er-entity] .divider path {
+  stroke-width: 1.35px !important;
+}
+
+.diagram-output [data-er-entity].is-selected .outer-path path {
+  stroke-width: 2.5px !important;
+}
+
+.diagram-output .edgeLabel rect {
+  fill: var(--surface-subtle) !important;
+  opacity: 0.94;
 }
 
 .rendering-state,
@@ -542,6 +640,12 @@ button {
   .preview-tools {
     align-items: flex-end;
     flex-direction: column;
+  }
+
+  .er-style-tools {
+    right: 10px;
+    left: 10px;
+    overflow-x: auto;
   }
 
   .status-bar span:last-child {

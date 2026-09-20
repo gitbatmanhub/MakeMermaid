@@ -97,14 +97,54 @@
       <div
         #previewCanvas
         class="preview-canvas"
-        [style.background-size]="24 * zoom() + 'px ' + 24 * zoom() + 'px'"
-        [style.background-position]="'calc(50% + ' + panX() + 'px) calc(50% + ' + panY() + 'px)'"
         (wheel)="handleCanvasWheel($event)"
         (pointerdown)="startCanvasPan($event)"
         (pointermove)="moveCanvasPan($event)"
         (pointerup)="stopCanvasPan($event)"
         (pointercancel)="stopCanvasPan($event)"
       >
+        @if (isErDiagram()) {
+          <div class="er-style-tools" (pointerdown)="$event.stopPropagation()">
+            <label>
+              <span>Ruta</span>
+              <select [value]="erConnectorStyle()" (change)="setErConnectorStyle($event)">
+                <option value="gentle">Sutil</option>
+                <option value="straight">Recta</option>
+                <option value="orthogonal">Ortogonal</option>
+                <option value="curved">Curva Mermaid</option>
+              </select>
+            </label>
+
+            @if (erEntities().length) {
+              <label>
+                <span>Tabla</span>
+                <select [value]="activeErEntity()" (change)="selectErEntity($event)">
+                  @for (entity of erEntities(); track entity) {
+                    <option [value]="entity">{{ entity }}</option>
+                  }
+                </select>
+              </label>
+              <label class="color-control" title="Color de la tabla seleccionada">
+                <span>Color</span>
+                <input type="color" [value]="selectedErColor()" (input)="setErEntityColor($event)" />
+              </label>
+              @if (selectedErEntity()) {
+                <button
+                  type="button"
+                  class="delete-entity-button"
+                  (click)="deleteSelectedErEntity()"
+                  title="Eliminar la tabla seleccionada"
+                >Eliminar</button>
+              }
+            }
+
+            <label class="color-control" title="Color de los conectores">
+              <span>Líneas</span>
+              <input type="color" [value]="erConnectorColor()" (input)="setErConnectorColor($event)" />
+            </label>
+          </div>
+        }
+
         @if (status() === 'rendering') {
           <div class="rendering-state" role="status">
             <span class="spinner" aria-hidden="true"></span>
