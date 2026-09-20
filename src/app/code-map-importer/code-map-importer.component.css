@@ -71,7 +71,7 @@
 
 .import-controls {
   display: grid;
-  grid-template-columns: 160px minmax(220px, 1fr) 120px auto;
+  grid-template-columns: 150px minmax(220px, 1fr) 110px auto auto;
   gap: 12px;
   align-items: end;
 }
@@ -83,13 +83,30 @@
 }
 
 .import-controls select,
-.import-controls input {
+.import-controls input:not([type='checkbox']) {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-subtle);
   color: inherit;
   padding: 8px 10px;
+}
+
+.import-controls .check-control {
+  display: flex;
+  min-height: 36px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+.check-control input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .import-error {

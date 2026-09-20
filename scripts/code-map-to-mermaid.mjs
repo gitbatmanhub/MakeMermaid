@@ -8,7 +8,11 @@ const outFile = path.resolve(args.out ?? 'public/code-map.mmd');
 const mode = args.mode === 'all' ? 'all' : 'focus';
 const focus = args.focus ?? '';
 const maxNodes = Number.parseInt(args.maxNodes ?? '42', 10);
-const graph = JSON.parse(readFileSync(inputFile, 'utf8'));
+const includeMigrations = args.includeMigrations === true
+  || args.includeMigrations === 'true'
+  || args['include-migrations'] === true
+  || args['include-migrations'] === 'true';
+const graph = filterMigrations(JSON.parse(readFileSync(inputFile, 'utf8')), includeMigrations);
 const mermaid = mode === 'all' ? createFullMermaid(graph, maxNodes) : createFocusMermaid(graph, focus, maxNodes);
 
 mkdirSync(path.dirname(outFile), { recursive: true });
@@ -94,6 +98,7 @@ function createClassStyles(nodes, mermaidIds) {
     '    classDef dto fill:#fff4df,stroke:#b45309,color:#1d2433',
     '    classDef module fill:#f0eaff,stroke:#7c3aed,color:#1d2433',
     '    classDef entity fill:#e9f8ee,stroke:#15803d,color:#1d2433',
+    '    classDef migration fill:#fff1e8,stroke:#c2410c,color:#1d2433',
     '    classDef codeClass fill:#f1f4f8,stroke:#667085,color:#1d2433'
   ];
 
@@ -103,6 +108,7 @@ function createClassStyles(nodes, mermaidIds) {
     dto: 'dto',
     module: 'module',
     entity: 'entity',
+    migration: 'migration',
     class: 'codeClass'
   };
 
@@ -112,6 +118,24 @@ function createClassStyles(nodes, mermaidIds) {
   }
 
   return lines;
+}
+
+function filterMigrations(graph, includeMigrations) {
+  if (includeMigrations) return graph;
+
+  const nodes = graph.nodes.filter((node) => !isMigration(node));
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return {
+    ...graph,
+    nodes,
+    edges: graph.edges.filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))
+  };
+}
+
+function isMigration(node) {
+  return node.kind === 'migration'
+    || /(^|\/)migrations?(\/|$)/i.test(node.file ?? '')
+    || /\.migration\.ts$/i.test(node.file ?? '');
 }
 
 function safeId(id, index) {

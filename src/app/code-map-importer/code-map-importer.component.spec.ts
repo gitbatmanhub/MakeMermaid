@@ -7,10 +7,12 @@ const VALID_GRAPH = {
   source: '/project/src',
   nodes: [
     { id: 'class:UsersController', label: 'UsersController', kind: 'controller', file: 'users.controller.ts' },
-    { id: 'class:UsersService', label: 'UsersService', kind: 'service', file: 'users.service.ts' }
+    { id: 'class:UsersService', label: 'UsersService', kind: 'service', file: 'users.service.ts' },
+    { id: 'class:CreateUsers', label: 'CreateUsers', kind: 'class', file: 'database/migrations/1700-create-users.ts' }
   ],
   edges: [
-    { id: 'users', from: 'class:UsersController', to: 'class:UsersService', kind: 'calls', label: 'UsersService.findAll()' }
+    { id: 'users', from: 'class:UsersController', to: 'class:UsersService', kind: 'calls', label: 'UsersService.findAll()' },
+    { id: 'migration', from: 'class:CreateUsers', to: 'class:UsersService', kind: 'imports', label: 'importa' }
   ]
 };
 
@@ -36,6 +38,23 @@ describe('CodeMapImporterComponent', () => {
     expect(generated?.source).toContain('classDef controller');
     expect(generated?.source).toContain('classDef codeClass');
     expect(generated?.source).not.toContain('classDef class');
+    expect(generated?.source).not.toContain('CreateUsers');
+    await expectAsync(mermaid.parse(generated!.source)).toBeResolved();
+  });
+
+  it('includes migrations only when the option is enabled', async () => {
+    const fixture = TestBed.createComponent(CodeMapImporterComponent);
+    const component = fixture.componentInstance;
+    let generated: { source: string; fileName: string } | undefined;
+    component.mermaidGenerated.subscribe((value) => generated = value);
+
+    await component.handleJsonSelection(fileEvent(VALID_GRAPH));
+    component.mode.set('all');
+    component.setIncludeMigrations(true);
+    component.generateMermaid();
+
+    expect(generated?.source).toContain('CreateUsers');
+    expect(generated?.source).toContain('classDef migration');
     await expectAsync(mermaid.parse(generated!.source)).toBeResolved();
   });
 

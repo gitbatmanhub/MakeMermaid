@@ -36,6 +36,7 @@ const KIND_LABELS: Record<string, string> = {
   dto: 'DTOs',
   module: 'Modules',
   entity: 'Entities',
+  migration: 'Migraciones',
   class: 'Classes'
 };
 
@@ -45,6 +46,7 @@ const KIND_STYLE_IDS: Record<string, string> = {
   dto: 'dto',
   module: 'module',
   entity: 'entity',
+  migration: 'migration',
   class: 'codeClass'
 };
 
@@ -63,11 +65,15 @@ export class CodeMapImporterComponent {
   readonly selectedNodeId = signal('');
   readonly mode = signal<'focus' | 'all'>('focus');
   readonly maxNodes = signal(42);
+  readonly includeMigrations = signal(false);
   readonly errorMessage = signal('');
 
   readonly kindLabels = KIND_LABELS;
-  readonly nodeOptions = computed(() => this.graph()?.nodes.slice().sort((a, b) => a.label.localeCompare(b.label)) ?? []);
-  readonly selectedNode = computed(() => this.graph()?.nodes.find((node) => node.id === this.selectedNodeId()) ?? null);
+  readonly nodeOptions = computed(() => this.graph()?.nodes
+    .filter((node) => this.includeMigrations() || !this.isMigration(node))
+    .slice()
+    .sort((a, b) => a.label.localeCompare(b.label)) ?? []);
+  readonly selectedNode = computed(() => this.nodeOptions().find((node) => node.id === this.selectedNodeId()) ?? null);
   readonly summaryItems = computed(() => {
     const graph = this.graph();
     if (!graph) return [];
@@ -87,7 +93,7 @@ export class CodeMapImporterComponent {
       const graph = this.parseGraph(JSON.parse(await file.text()));
       this.graph.set(graph);
       this.fileName.set(file.name);
-      this.selectedNodeId.set(graph.nodes[0]?.id ?? '');
+      this.selectedNodeId.set(graph.nodes.find((node) => !this.isMigration(node))?.id ?? graph.nodes[0]?.id ?? '');
       this.errorMessage.set('');
     } catch (error) {
       this.graph.set(null);
@@ -99,11 +105,12 @@ export class CodeMapImporterComponent {
     const graph = this.graph();
     if (!graph) return;
 
+    const filteredGraph = this.filterMigrations(graph);
     const limit = this.clampMaxNodes(this.maxNodes());
     this.maxNodes.set(limit);
     const source = this.mode() === 'focus'
-      ? this.createFocusMermaid(graph, this.selectedNodeId(), limit)
-      : this.createFullMermaid(graph, limit);
+      ? this.createFocusMermaid(filteredGraph, this.selectedNodeId(), limit)
+      : this.createFullMermaid(filteredGraph, limit);
 
     const baseName = this.fileName().replace(/\.[^.]+$/, '') || 'code-map';
     this.mermaidGenerated.emit({ source, fileName: `${baseName}.mmd` });
@@ -111,6 +118,13 @@ export class CodeMapImporterComponent {
 
   setMaxNodes(value: number): void {
     this.maxNodes.set(this.clampMaxNodes(value));
+  }
+
+  setIncludeMigrations(value: boolean): void {
+    this.includeMigrations.set(value);
+    if (!this.nodeOptions().some((node) => node.id === this.selectedNodeId())) {
+      this.selectedNodeId.set(this.nodeOptions()[0]?.id ?? '');
+    }
   }
 
   private createFocusMermaid(graph: CodeMap, selectedNodeId: string, maxNodes: number): string {
@@ -181,6 +195,7 @@ export class CodeMapImporterComponent {
       '    classDef dto fill:#fff4df,stroke:#b45309,color:#1d2433',
       '    classDef module fill:#f0eaff,stroke:#7c3aed,color:#1d2433',
       '    classDef entity fill:#e9f8ee,stroke:#15803d,color:#1d2433',
+      '    classDef migration fill:#fff1e8,stroke:#c2410c,color:#1d2433',
       '    classDef codeClass fill:#f1f4f8,stroke:#667085,color:#1d2433'
     ];
 
@@ -252,6 +267,24 @@ export class CodeMapImporterComponent {
 
   private clampMaxNodes(value: number): number {
     return Math.min(240, Math.max(8, Number.isFinite(value) ? Math.round(value) : 42));
+  }
+
+  private filterMigrations(graph: CodeMap): CodeMap {
+    if (this.includeMigrations()) return graph;
+
+    const nodes = graph.nodes.filter((node) => !this.isMigration(node));
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    return {
+      ...graph,
+      nodes,
+      edges: graph.edges.filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))
+    };
+  }
+
+  private isMigration(node: CodeMapNode): boolean {
+    return node.kind === 'migration'
+      || /(^|\/)migrations?(\/|$)/i.test(node.file)
+      || /\.migration\.ts$/i.test(node.file);
   }
 
   private safeId(id: string, index: number): string {

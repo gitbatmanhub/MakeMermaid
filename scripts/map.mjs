@@ -112,6 +112,7 @@ function buildClassNode(classDeclaration, sourceFile, rootDir) {
 }
 
 function getClassKind(name, file, decorators) {
+  if (/(^|\/)migrations?(\/|$)/i.test(file) || /\.migration\.ts$/i.test(file)) return 'migration';
   if (decorators.includes('Controller')) return 'controller';
   if (decorators.includes('Module')) return 'module';
   if (decorators.includes('Entity')) return 'entity';

@@ -59,6 +59,15 @@
         <input type="number" min="8" max="240" [ngModel]="maxNodes()" (ngModelChange)="setMaxNodes(+$event)" />
       </label>
 
+      <label class="check-control">
+        <input
+          type="checkbox"
+          [ngModel]="includeMigrations()"
+          (ngModelChange)="setIncludeMigrations($event)"
+        />
+        <span>Incluir migraciones</span>
+      </label>
+
       <button type="button" class="button primary" (click)="generateMermaid()">Enviar al editor</button>
     </div>
 

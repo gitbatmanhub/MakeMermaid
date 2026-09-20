@@ -57,6 +57,12 @@ Para generar un `.mmd` directamente por CLI:
 npm run map:mermaid -- --input public/code-map.json --out public/code-map.mmd --mode focus --focus UsersService --maxNodes 42
 ```
 
+Las migraciones quedan fuera del diagrama por defecto. Puedes incluirlas desde el check **Incluir migraciones** de la app o al generar por CLI:
+
+```bash
+npm run map:mermaid -- --input public/code-map.json --out public/code-map.mmd --mode all --include-migrations
+```
+
 También puedes usar una vista más amplia:
 
 ```bash
@@ -71,6 +77,7 @@ npm run map:mermaid -- --input public/code-map.json --out public/code-map.mmd --
 - DTOs recibidos por controllers.
 - Llamadas tipo `this.servicio.metodo()`.
 - Rutas HTTP básicas de NestJS.
+- Migraciones, identificadas por su carpeta o por archivos `*.migration.ts`.
 
 ## Nota Sobre Proyectos Grandes
 
